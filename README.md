@@ -39,6 +39,8 @@ Before connecting anything sensitive, lock it down. I worked through a systemati
 - Email domain allowlists
 - Behavioral file write restrictions
 
+The full guide lives here: **[openclaw-security-guide](https://github.com/rbfp/openclaw-security-guide)**
+
 This wasn't theoretical — we iterated on it in real sessions, testing edge cases, tightening rules, and working through what it actually means to give an AI agent access to your life without giving it the keys to burn it down. The result is a layered guardrail system baked into the agent's `AGENTS.md` workspace file.
 
 ### 3. Set Up a Discord Bot
@@ -55,9 +57,7 @@ Gir lives in a private Discord server. Different channels serve different purpos
 
 ### 4. Link Discord Into Coding
 
-OpenClaw supports multiple agents on the same gateway. A second agent — **moredecir** — was spun up as an AI Dungeon Master for tabletop campaigns. It runs in its own Discord channels with its own memory and persona, completely isolated from Gir's context.
-
-> moredecir repo: *coming soon*
+OpenClaw supports multiple agents on the same gateway. A second agent was spun up as an AI Dungeon Master for tabletop campaigns. It runs in its own Discord channels with its own memory and persona, completely isolated from Gir's context.
 
 The pattern is reusable: one gateway, multiple bots, each with distinct identities, memories, and channel bindings. They don't bleed into each other.
 
