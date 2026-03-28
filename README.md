@@ -39,8 +39,6 @@ Before connecting anything sensitive, lock it down. I worked through a systemati
 - Email domain allowlists
 - Behavioral file write restrictions
 
-The full guide lives here: **[openclaw-security-guide](https://github.com/rbfp/openclaw-security-guide)**
-
 This wasn't theoretical — we iterated on it in real sessions, testing edge cases, tightening rules, and working through what it actually means to give an AI agent access to your life without giving it the keys to burn it down. The result is a layered guardrail system baked into the agent's `AGENTS.md` workspace file.
 
 ### 3. Set Up a Discord Bot
