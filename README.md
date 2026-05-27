@@ -205,7 +205,7 @@ For example, a second agent was spun up as an AI Dungeon Master for tabletop cam
 ## What Gir actually does
 
 ### 📒 Bookkeeping
-Gir handles bookkeeping for **Cyberforks LLC** using [gogcli](https://github.com/rbfp/gogcli) (Google Workspace CLI). The workflow:
+Gir handles bookkeeping for **Cyberforks LLC** using [gogcli](https://gogcli.sh) — a Google Workspace CLI by the [OpenClaw team](https://github.com/openclaw/gogcli). The workflow:
 - Pulls email receipts and invoices from Gmail
 - Downloads and renames PDFs using a standardized naming convention
 - Uploads to Google Drive
