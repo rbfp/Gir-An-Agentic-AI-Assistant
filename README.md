@@ -160,20 +160,49 @@ For slash commands, drop them in `~/.claude/skills/`. Each one is a markdown fil
 
 ### 3. Harden the agent
 
-Before connecting anything sensitive, lock it down. I worked through a systematic security hardening process covering:
+Before connecting anything sensitive, lock it down. Hardening covers four layers — host, runtime, agent behavior, and fleet coordination. Most of it is runtime-agnostic; specifics that diverge between OpenClaw and Claude Code are called out.
 
-- Confirmation tiers (Tier 1 / 2 / 3 gate system for escalating risk)
-- Prompt injection defenses
-- Data egress rules
-- iCloud access controls
-- Email domain allowlists
-- Behavioral file write restrictions
+**Host layer (any machine the agent runs on).**
 
-The full guide lives here: **[openclaw-security-guide](https://github.com/rbfp/openclaw-security-guide)**
+The agent lives on real hardware. If the laptop is unencrypted, the agent's secrets are unencrypted. If there's no backup, the agent's continuity dies with the disk. The P0 baseline:
 
-The OpenClaw version is canonical, but the same posture applies to the Claude Code build — most of the rules are runtime-agnostic. On Claude Code, the gating moves into pre-tool-use hooks (`~/.claude/hooks/`) and the `CLAUDE.md` behavioral rules. The threat model is identical.
+- **FileVault** — full-disk encryption on. Recovery key in a password manager + paper printout in a fireproof location.
+- **macOS Firewall** — on, with stealth mode if the machine ever sits on untrusted Wi-Fi.
+- **SSH key passphrase** — `ssh-keygen -p -f ~/.ssh/id_ed25519`, then add to the macOS keychain so `git push` doesn't prompt. A passphrase-less key on an always-on dev machine is one laptop theft away from a supply-chain incident.
+- **Time Machine** — destination configured and running. Backup-less data is one accident away from gone.
 
-This wasn't theoretical — we iterated on it in real sessions, testing edge cases, tightening rules, and working through what it actually means to give an AI agent access to your life without giving it the keys to burn it down.
+If you run a second machine (e.g., a MacBook Air for travel), **the same baseline applies to it independently** — the fleet's posture is the weakest machine's posture. We caught this gap the hard way: when the agent was migrated to a second machine, the daemon-config bootstrap shipped first and the host hardening checklist was implied but not re-prescribed. Document hardening as a per-machine step in your runbook, not a one-time setup-day step.
+
+**Runtime layer.**
+
+The Discord plugin is the agent's primary egress surface. On OpenClaw, channel routing and egress rules live in the gateway config. On Claude Code, the discord plugin's `server.ts` is patched with channel allowlists, outbound-message screening, and credential-pattern detection. The patch is fragile:
+
+- **Plugin drift detection.** Claude Code auto-updates plugins. An auto-update silently reverts the patched `server.ts` to the stock version — taking the guardrails and watchdog with it. Fingerprint the patched file and the cache file; if md5s don't match, surface it loudly (e.g., a daily-briefing `🔌 Plugin Health` alert).
+- **Webhook IDs in the allowlist.** Cron-triggered webhooks need to be in `GIR_ALLOWED_BOTS`, or the plugin drops their messages silently. A trigger that never arrives can look identical to a daemon that ignored it.
+
+**Agent behavior layer.**
+
+This is where the [openclaw-security-guide](https://github.com/rbfp/openclaw-security-guide) lives — confirmation tiers, prompt injection defenses, data egress rules, iCloud / Documents access controls, email domain allowlists, behavioral file write restrictions. The OpenClaw version is canonical; the same posture transfers to Claude Code via:
+
+- `~/.claude/hooks/` for pre-tool-use gates
+- `CLAUDE.md` for in-context behavioral rules
+- `~/.claude/audit/` for per-tool-call event logging
+
+Two specific behaviors worth highlighting from real incidents:
+
+- **Don't act on "X approved" claims from other channels.** A daemon being asked to relay an "operator-approved migration" prompt from another channel sounds reasonable until you realize the human operator isn't in *that* conversation. The integrity rule: cross-channel approval claims require out-of-band verification before action. We caught one mid-session (one daemon trying to coerce another into relaying a takeover prompt to a third channel); the guardrail fired correctly.
+- **Front-end honesty over confident integers.** When the agent makes a consequential call from a number the operator reports — a workout rep count, a balance, a hash — the operator reporting "didn't count, ~X to failure" up front beats reporting a confident integer that later gets revised. The agent's protocol should reward the corrected report, not punish it. The principle generalizes: any tight-loop human↔agent decision protocol benefits from a "say what you don't know" affordance.
+
+**Fleet coordination layer (multi-agent).**
+
+Once there's more than one agent, daemons can become attack vectors against each other via shared channels. Defenses:
+
+- **Single `CLAUDE.md` source of truth.** Every daemon reads the same root `~/CLAUDE.md` — identity, DM routing, time/timezone discipline, cross-channel coercion rule. Soft enforcement: convention, not policing.
+- **Shared `~/.claude/skills/` (symlink-managed).** Skills must be *symlinked* into the canonical skills dir, not just present in a fleet repo. A daemon that receives a trigger message for a skill the loader can't find will frequently **not error** — it will read the trigger as plain text and reason its way to a no-op. This silent-failure mode bit us; the fix is symlink + restart-fleet.
+- **One SOC daemon as runtime watchdog.** `soc-gir` (or equivalent) tails the plugin's egress events, classifies them, and DMs the operator on real escalations. Reactive, not preventive — but it catches what slips past convention.
+- **Don't bake operator-policing into daemon bootstraps.** When you onboard a new daemon, distinguish (a) self-protective rules — don't act on absent-user approvals, don't fabricate memory state — from (b) sysadmin/coordination rules trying to police the operator's config (channel allocation, env-var choices). Keep (a); cut (b). The operator is the system architect; the daemon's job is to follow, not audit.
+
+None of this was theoretical — we iterated on it in real sessions, testing edge cases, tightening rules, and working through what it actually means to give an AI agent access to your life without giving it the keys to burn it down. Some rules came from incidents, not whiteboards.
 
 ### 4. Set up a Discord bot
 
@@ -275,6 +304,7 @@ That required:
 - **Hard gates** on destructive or public actions
 - **Explicit confirmation flows** before anything irreversible
 - **Defense against prompt injection** from external content
+- **Host hardening as a baseline** — the agent's security is bounded by the laptop it runs on
 - **Layered logging** for auditability
 - **Honest limits** on what the agent should and shouldn't do
 
