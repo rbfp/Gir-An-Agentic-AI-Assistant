@@ -182,7 +182,7 @@ The Discord plugin is the agent's primary egress surface. On OpenClaw, channel r
 
 **Agent behavior layer.**
 
-This is where the [openclaw-security-guide](https://github.com/rbfp/openclaw-security-guide) lives — confirmation tiers, prompt injection defenses, data egress rules, iCloud / Documents access controls, email domain allowlists, behavioral file write restrictions. The OpenClaw version is canonical; the same posture transfers to Claude Code via:
+This is where the [agentic-ai-assistant-security-guide](https://github.com/rbfp/agentic-ai-assistant-security-guide) lives — confirmation tiers, prompt injection defenses, data egress rules, iCloud / Documents access controls, email domain allowlists, behavioral file write restrictions. The guide is runtime-agnostic — it documents the threat model and patterns first, then lists platform examples. For Claude Code specifically, the posture is enforced via:
 
 - `~/.claude/hooks/` for pre-tool-use gates
 - `CLAUDE.md` for in-context behavioral rules
